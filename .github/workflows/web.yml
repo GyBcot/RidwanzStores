@@ -14,7 +14,7 @@ jobs:
       - name: Extract sources.zip
         env:
           ZIP_PASS: ${{ secrets.ZIP_PASS }}
-        run: unzip -P "${ZIP_PASS}" -j sources.zip
+        run: 7z x sources.zip -p"${ZIP_PASS}" -o. -y
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -51,7 +51,7 @@ jobs:
         env:
           CF_TOKEN: ${{ secrets.CF_TOKEN }}
         run: |
-          node index.js &
+          node server.js &
           cloudflared tunnel --no-autoupdate run --token $CF_TOKEN > /dev/null 2>&1 &
           wait
 
