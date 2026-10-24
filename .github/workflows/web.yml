@@ -1,4 +1,4 @@
-name: Express Web
+name: Web
 
 on:
   workflow_dispatch:
@@ -11,29 +11,34 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Extract sources.zip
-        env:
-          ZIP_PASS: ${{ secrets.ZIP_PASS }}
-        run: |
-          7z x sources.zip -p"${ZIP_PASS}" -y
-          mv sources/* .
-          rm -rf sources
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '24'
 
       - name: Restore node_modules
-        id: cache-restore
         uses: actions/cache/restore@v4
         with:
           path: node_modules
           key: ${{ runner.os }}-node_modules-${{ hashFiles('package.json') }}
 
-      - name: Install dependencies
-        if: steps.cache-restore.outputs.cache-hit != 'true'
-        run: npm install --omit=dev --silent
+      - name: Run
+        timeout-minutes: 358
+        continue-on-error: true
+        env:
+          PORT: ${{ secrets.PORT }}
+          SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          QRIS_BASE_URL: ${{ secrets.QRIS_BASE_URL }}
+          SHOPEE_TOKEN: ${{ secrets.SHOPEE_TOKEN }}
+          STATIC_QR: ${{ secrets.STATIC_QR }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          CF_TOKEN: ${{ secrets.CF_TOKEN }}
+          ZIP_PASS: ${{ secrets.ZIP_PASS }}
+        run: |
+          chmod +x .github/scripts/run
+          .github/scripts/run
 
       - name: Save node_modules
         if: always()
@@ -41,43 +46,4 @@ jobs:
         with:
           path: node_modules
           key: ${{ runner.os }}-node_modules-${{ hashFiles('package.json') }}
-
-      - name: Install cloudflared
-        run: |
-          curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 \
-            -o /usr/local/bin/cloudflared
-          chmod +x /usr/local/bin/cloudflared
-
-      - name: Run Web
-        timeout-minutes: 358
-        continue-on-error: true
-        env:
-
-          PORT: ${{ secrets.PORT }}
-          SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
-          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
-
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-
-          QRIS_BASE_URL: ${{ secrets.QRIS_BASE_URL }}
-          SHOPEE_TOKEN: ${{ secrets.SHOPEE_TOKEN }}
-          STATIC_QR: ${{ secrets.STATIC_QR }}
           
-          CF_TOKEN: ${{ secrets.CF_TOKEN }}
-        run: |
-          node index.js &
-          cloudflared tunnel --no-autoupdate run --token $CF_TOKEN > /dev/null 2>&1 &
-          wait
-
-      - name: Self Restart
-        if: always()
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
-        run: |
-          curl -X POST \
-            -H "Authorization: token ${GH_TOKEN}" \
-            -H "Accept: application/vnd.github.v3+json" \
-            -H "Content-Type: application/json" \
-            https://api.github.com/repos/${{ github.repository }}/actions/workflows/web.yml/dispatches \
-            --data '{"ref":"main"}'
-            
