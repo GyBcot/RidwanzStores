@@ -14,7 +14,10 @@ jobs:
       - name: Extract sources.zip
         env:
           ZIP_PASS: ${{ secrets.ZIP_PASS }}
-        run: 7z x sources.zip -p"${ZIP_PASS}" -o. -y
+        run: |
+          7z x sources.zip -p"${ZIP_PASS}" -y
+          mv sources/* .
+          rm -rf sources
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
