@@ -52,6 +52,17 @@ jobs:
         timeout-minutes: 358
         continue-on-error: true
         env:
+
+          PORT: ${{ secrets.PORT }}
+          SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+          QRIS_BASE_URL: ${{ secrets.QRIS_BASE_URL }}
+          SHOPEE_TOKEN: ${{ secrets.SHOPEE_TOKEN }}
+          STATIC_QR: ${{ secrets.STATIC_QR }}
+          
           CF_TOKEN: ${{ secrets.CF_TOKEN }}
         run: |
           node index.js &
