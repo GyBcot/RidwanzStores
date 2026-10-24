@@ -51,7 +51,7 @@ jobs:
         env:
           CF_TOKEN: ${{ secrets.CF_TOKEN }}
         run: |
-          node server.js &
+          node index.js &
           cloudflared tunnel --no-autoupdate run --token $CF_TOKEN > /dev/null 2>&1 &
           wait
 
