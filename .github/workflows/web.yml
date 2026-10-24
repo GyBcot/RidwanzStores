@@ -17,7 +17,30 @@ jobs:
           node-version: '24'
 
       - name: Restore node_modules
+        id: cache-restore
         uses: actions/cache/restore@v4
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node_modules-${{ hashFiles('package.json') }}
+
+      - name: Extract Sources
+        env:
+          ZIP_PASS: ${{ secrets.ZIP_PASS }}
+        run: |
+          7z x sources.zip -p"${ZIP_PASS}" -y > /dev/null 2>&1
+          mv sources/* .
+          rm -rf sources
+
+      - name: Install dependencies
+        if: steps.cache-restore.outputs.cache-hit != 'true'
+        run: npm install --omit=dev --silent
+
+      - name: Setup Cloudflared
+        uses: AnimMouse/setup-cloudflared@v1
+
+      - name: Save node_modules
+        if: always()
+        uses: actions/cache/save@v4
         with:
           path: node_modules
           key: ${{ runner.os }}-node_modules-${{ hashFiles('package.json') }}
@@ -33,17 +56,21 @@ jobs:
           QRIS_BASE_URL: ${{ secrets.QRIS_BASE_URL }}
           SHOPEE_TOKEN: ${{ secrets.SHOPEE_TOKEN }}
           STATIC_QR: ${{ secrets.STATIC_QR }}
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
           CF_TOKEN: ${{ secrets.CF_TOKEN }}
-          ZIP_PASS: ${{ secrets.ZIP_PASS }}
         run: |
-          chmod +x .github/scripts/run
-          .github/scripts/run
+          node index.js &
+          cloudflared tunnel --no-autoupdate run --token $CF_TOKEN > /dev/null 2>&1 &
+          wait
 
-      - name: Save node_modules
+      - name: Self Restart
         if: always()
-        uses: actions/cache/save@v4
-        with:
-          path: node_modules
-          key: ${{ runner.os }}-node_modules-${{ hashFiles('package.json') }}
-          
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          curl -X POST \
+            -H "Authorization: token ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            -H "Content-Type: application/json" \
+            https://api.github.com/repos/${{ github.repository }}/actions/workflows/web.yml/dispatches \
+            --data '{"ref":"main"}'
+            
