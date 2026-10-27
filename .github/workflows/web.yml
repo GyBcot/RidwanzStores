@@ -3,6 +3,10 @@ name: Web
 on:
   workflow_dispatch:
 
+permissions:
+  actions: write
+  contents: write
+
 jobs:
   web:
     runs-on: ubuntu-latest
