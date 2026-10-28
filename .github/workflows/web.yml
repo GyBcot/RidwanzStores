@@ -46,7 +46,7 @@ jobs:
           key: ${{ runner.os }}-node_modules-${{ hashFiles('package.json') }}
 
       - name: Run
-        timeout-minutes: 355
+        timeout-minutes: 3
         continue-on-error: true
         env:
           PORT: ${{ secrets.PORT }}
